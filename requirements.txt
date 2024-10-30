@@ -1,7 +1,9 @@
 torch
 torchvision
+supervision
 opencv-python
 pandas
 matplotlib
 onnxruntime
 fastapi[standard]
+uvicorn
