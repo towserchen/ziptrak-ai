@@ -168,9 +168,11 @@ async def upload_image(
         file.write(await upload_file.read())
 
     result = detect_file(file_path, is_window_detected, False, False)
-    coordinate_list = result[0]
+    coordinate_list = []
 
-    coordinate_list = [[int(x) for x in point] for point in coordinate_list]
+    for coordinate in result:
+        _coordinate = [[int(x) for x in point] for point in coordinate]
+        coordinate_list.append(_coordinate)
 
     print(coordinate_list)
 
