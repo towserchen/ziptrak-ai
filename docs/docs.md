@@ -58,3 +58,22 @@ POST `/detect`
 | upload_file            | File   | The file to be uploaded, from HTML File | Yes      | None    |
 | is_window_detected     | int    | Whether to detect windows, where 1 or 0 indicates True and False | No       | 1       |
 | save_processed_images   | int    | Whether to save processed files, where 1 or 0 indicates True and False; if 1, it will save the object detection result images in the /results/ directory | No       | 0       |
+
+
+## The basic principles of the app
+
+This application combines YOLO-World and Efficient-SAM. It uses the zero-shot detection capability of YOLO-World to detect the contours of windows and pillars, and then utilizes ESAM for segmentation to obtain details. Finally, a post-processing function is applied to obtain the final result coordinates.
+
+
+## Optimization and Improvement
+
+## AI Model
+
+YOLO-World is a workaround and not the most ideal solution. Training with YOLO on a well-annotated dataset will yield a more accurate model.
+
+E-SAM shows good detection performance, and switching to SAM2 will not significantly improve (at least based on the current result set).
+
+## API
+
+The API code is provided only as an example. In a production environment, you will need to consider details such as authentication, rate limiting, and file upload management, and further customize it based on your specific scenario.
+

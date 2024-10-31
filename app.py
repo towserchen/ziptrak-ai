@@ -10,7 +10,18 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
 def detect_file(file_path, is_window_detected=True, save_processed_images=True, show_final_image=True):
+    """
+    Detect the file
 
+    Args:
+        string file_path: The image path you want to detect, supports jpg, png
+        bool is_window_detected: Detect thw windows or not. True for indoor detection, False for outdoor detection
+        bool save_processed_images: Whether to save image that is detected in the state of object detection. The images will be stored at ./results/
+        bool show_final_image: Whether to show the final image in a window, run locally only
+
+    Returns:
+        list openning coordinates
+    """
     file_name = file_path.split('.')[0]
 
     if is_window_detected:
@@ -113,7 +124,10 @@ def detect_file(file_path, is_window_detected=True, save_processed_images=True, 
 
 
 if __name__ == '__main__':
+    # The image path you want to detect
     file_path = 'samples/5.jpg'
+
+    # True for Indoor detection, otherwise False
     is_window_detected = False
 
     detect_file(file_path, is_window_detected, True, True)
