@@ -8,6 +8,7 @@ import sam
 
 from fastapi import FastAPI, File, UploadFile, HTTPException
 from fastapi.responses import JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
 
 import time
 import os
@@ -19,6 +20,13 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 app = FastAPI()
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins='*',
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 def detect_file(file_path, is_window_detected=True, save_processed_images=True, show_final_image=True):
 
