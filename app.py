@@ -155,21 +155,17 @@ async def upload_image(
     else:
         save_processed_images = False
 
-    # 验证文件类型
     if upload_file.content_type not in ["image/jpeg", "image/png"]:
         raise HTTPException(status_code=400, detail="Invalid file type. Only JPG and PNG are allowed.")
     
-    # 验证文件大小
     if upload_file.file.seek(0, os.SEEK_END) > MAX_FILE_SIZE:
         raise HTTPException(status_code=400, detail="File size exceeds the limit of 5MB.")
     upload_file.file.seek(0)
 
-    # 生成毫秒时间戳
     timestamp = int(time.time() * 1000)
     file_extension = os.path.splitext(upload_file.filename)[1]
     new_file_name = f"{timestamp}{file_extension}"
 
-    # 处理上传的图片
     file_path = f"uploads/{new_file_name}"
     file_location = file_path
     with open(file_location, "wb") as file:
@@ -184,7 +180,6 @@ async def upload_image(
 
     print(coordinate_list)
 
-    # 返回 JSON 响应
     return JSONResponse(content={
         "coordinate_list": coordinate_list
     })
