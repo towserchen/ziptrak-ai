@@ -81,27 +81,32 @@ def detect_file(file_path, is_window_detected=True, save_processed_images=True, 
             scaled_masks = tool.filter_masks_by_aspect_ratio_avg(scaled_masks)
         else:
             scaled_masks = tool.filter_masks_by_aspect_ratio(scaled_masks)
+
+    print(len(scaled_masks))
     
     
     pillarCornerList = []
-    
+
     for index, scaled_mask in enumerate(scaled_masks):
         # Corner sequence: left_top, right_top, right_bottom, left_bottom. clockwise
         corner = tool.get_corners(scaled_mask)
         cornersList.append([corner['top_left'], corner['top_right'], corner['bottom_right'], corner['bottom_left']])
 
         if not is_window_detected:
-            # First pillar, fetch the rect's right_top, right_bottom as the coordinates of left_top and left_bottom
-            if index == 0:
-                pillarCornerList.append([corner['top_right'], -1, -1, corner['bottom_right']])
+            if len(scaled_masks) <= 1:
+                print('Only 1 pillar detected')
             else:
-                # Not the first one, fetch rect's left_top, left_bottom as the previous pillar's right_top, right_bottom
-                pillarCornerList[index - 1][1] = corner['top_left']
-                pillarCornerList[index - 1][2] = corner['bottom_left']
-
-                # Not the last one, keep complete coordinates of pillars
-                if index != len(scaled_masks) - 1:
+                # First pillar, fetch the rect's right_top, right_bottom as the coordinates of left_top and left_bottom
+                if index == 0:
                     pillarCornerList.append([corner['top_right'], -1, -1, corner['bottom_right']])
+                else:
+                    # Not the first one, fetch rect's left_top, left_bottom as the previous pillar's right_top, right_bottom
+                    pillarCornerList[index - 1][1] = corner['top_left']
+                    pillarCornerList[index - 1][2] = corner['bottom_left']
+
+                    # Not the last one, keep complete coordinates of pillars
+                    if index != len(scaled_masks) - 1:
+                        pillarCornerList.append([corner['top_right'], -1, -1, corner['bottom_right']])
 
     assert all(mask.shape == masks[0].shape for mask in masks), "All masks must have same shape"
 
@@ -125,9 +130,9 @@ def detect_file(file_path, is_window_detected=True, save_processed_images=True, 
 
 if __name__ == '__main__':
     # The image path you want to detect
-    file_path = 'samples/5.jpg'
+    file_path = 'samples/2.jpg'
 
     # True for Indoor detection, otherwise False
-    is_window_detected = False
+    is_window_detected = True
 
     detect_file(file_path, is_window_detected, True, True)

@@ -61,6 +61,8 @@ async def upload_image(
     result = detect_app.detect_file(file_path, is_window_detected, False, False)
     coordinate_list = []
 
+    print(result)
+
     for coordinate in result:
         _coordinate = [[int(x) for x in point] for point in coordinate]
         coordinate_list.append(_coordinate)
