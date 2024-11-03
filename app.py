@@ -130,9 +130,9 @@ def detect_file(file_path, is_window_detected=True, save_processed_images=True, 
 
 if __name__ == '__main__':
     # The image path you want to detect
-    file_path = 'samples/2.jpg'
+    file_path = 'samples/16.jpg'
 
     # True for Indoor detection, otherwise False
-    is_window_detected = True
+    is_window_detected = False
 
     detect_file(file_path, is_window_detected, True, True)

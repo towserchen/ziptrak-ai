@@ -31,8 +31,8 @@ LABEL_ANNOTATOR = LabelAnnotator(text_padding=4,
                                  text_scale=0.5,
                                  text_thickness=1)
 
-window_model = ort.InferenceSession('weights/window.onnx', providers=['CPUExecutionProvider'])
-pillar_model = ort.InferenceSession('weights/pillar.onnx', providers=['CPUExecutionProvider'])
+window_model = ort.InferenceSession('weights/window.onnx', providers=['CUDAExecutionProvider', 'CPUExecutionProvider'])
+pillar_model = ort.InferenceSession('weights/pillar.onnx', providers=['CUDAExecutionProvider', 'CPUExecutionProvider'])
 
 def save_result(file_name, annotations, original_image, device):
     """
