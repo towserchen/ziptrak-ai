@@ -96,13 +96,13 @@ def detect_file(file_path, is_window_detected=True, save_processed_images=True, 
             if len(scaled_masks) <= 1:
                 print('Only 1 pillar detected')
             else:
-                # First pillar, fetch the rect's right_top, right_bottom as the coordinates of left_top and left_bottom
+                # First pillar, fetch the rect's top_left, bottom_left as the coordinates of left_top and left_bottom
                 if index == 0:
-                    pillarCornerList.append([corner['top_right'], -1, -1, corner['bottom_right']])
+                    pillarCornerList.append([corner['top_left'], -1, -1, corner['bottom_left']])
                 else:
-                    # Not the first one, fetch rect's left_top, left_bottom as the previous pillar's right_top, right_bottom
-                    pillarCornerList[index - 1][1] = corner['top_left']
-                    pillarCornerList[index - 1][2] = corner['bottom_left']
+                    # Not the first one, fetch rect's top_right, bottom_right as the previous pillar's right_top, right_bottom
+                    pillarCornerList[index - 1][1] = corner['top_right']
+                    pillarCornerList[index - 1][2] = corner['bottom_right']
 
                     # Not the last one, keep complete coordinates of pillars
                     if index != len(scaled_masks) - 1:
