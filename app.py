@@ -49,7 +49,7 @@ def detect_file(file_path, is_window_detected=True, save_processed_images=True, 
 
     filtered_bboxes = [d['bbox'] for d in detect_result]
 
-    image = Image.open(file_path)
+    image = Image.open(file_path).convert('RGB')
     original_width, original_height = image.size
 
     index = 0
