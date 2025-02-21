@@ -3,6 +3,7 @@ import cv2
 import numpy as np
 import supervision as sv
 import onnxruntime as ort
+import time
 from utils.preview import fast_process
 
 try:
@@ -140,12 +141,18 @@ def inference(ort_session,
     """
     ori_image = cv2.imread(image_path)
     h, w = ori_image.shape[:2]
+
+    start_time = time.perf_counter()
+
     image, scale_factor, pad_param = preprocess(ori_image[:, :, [2, 1, 0]],
                                                 size)
     input_ort = ort.OrtValue.ortvalue_from_numpy(image.transpose((0, 3, 1, 2)))
     results = ort_session.run(["num_dets", "labels", "scores", "boxes"],
                               {"images": input_ort})
     num_dets, labels, scores, bboxes = results
+
+    end_time = time.perf_counter()
+    print(f'Inference time: {end_time - start_time:.4f} seconds')
     
     num_dets = num_dets[0][0]
     labels = labels[0, :num_dets]
