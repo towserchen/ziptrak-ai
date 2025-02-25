@@ -5,8 +5,10 @@ import cv2
 import detect
 from utils import tool
 import sam
+import time
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+print(f'Using device: {device}')
 
 
 def detect_file(file_path, is_window_detected=True, save_processed_images=True, show_final_image=True):
@@ -53,6 +55,7 @@ def detect_file(file_path, is_window_detected=True, save_processed_images=True, 
     original_width, original_height = image.size
 
     index = 0
+    start_time = time.perf_counter()
 
     for row in filtered_bboxes:
         index += 1
@@ -69,6 +72,9 @@ def detect_file(file_path, is_window_detected=True, save_processed_images=True, 
 
         masks.append(mask)
         scaled_masks.append(scaled_mask)
+    
+    end_time = time.perf_counter()
+    print(f"Segmentation time: {end_time - start_time:.4f} seconds")
 
 
     # Filter out pillars that are too short
