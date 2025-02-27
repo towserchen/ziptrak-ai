@@ -7,3 +7,4 @@ matplotlib
 onnxruntime-gpu
 fastapi[standard]
 uvicorn
+boto3

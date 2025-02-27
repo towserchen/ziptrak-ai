@@ -17,13 +17,6 @@ def is_idle():
 
 
 def detect_file(file_path, is_window_detected=True, save_processed_images=True, show_final_image=True):
-    if not is_idle():
-        raise Exception('The detection process is not idle.')
-    
-    global IS_IDLE
-
-    IS_IDLE = False
-
     """
     Detect the file
 
@@ -36,6 +29,13 @@ def detect_file(file_path, is_window_detected=True, save_processed_images=True, 
     Returns:
         list openning coordinates
     """
+    if not is_idle():
+        raise Exception('The detection process is not idle.')
+    
+    global IS_IDLE
+
+    IS_IDLE = False
+    
     file_name = file_path.split('.')[0]
 
     if is_window_detected:

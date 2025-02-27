@@ -6,6 +6,7 @@ import time
 import os
 
 import app as detect_app
+import boto3
 
 app = FastAPI()
 
@@ -24,11 +25,35 @@ MAX_FILE_SIZE = 5 * 1024 * 1024
 IS_IDLE = True
 
 
-@app.post("/detect")
+def ajax(status: int = 1, msg: str = 'ok', data: any = None) -> JSONResponse:
+    return JSONResponse(content={
+        "status": status,
+        "msg": msg,
+        "data": data
+    })
+
+
+def download_file_from_s3(s3_bucket, s3_key):
+    s3 = boto3.client("s3")
+
+    ext = s3_key.split('.')[-1]
+    local_file_path = f'./upload/{time.time()}.{ext}'
+    s3.download_file(s3_bucket, s3_key, local_file_path)
+
+    return local_file_path
+
+
+@app.post('/node/is_available')
+async def is_available():
+    return ajax(detect_app.is_idle())
+
+
+@app.post("/detect/image")
 async def upload_image(
     is_indoor: int = Form(1),
     save_processed_images: int = Form(0),
-    file_key: str = Form(...),
+    s3_bucket: str = Form(...),
+    s3_key: str = Form(...),
 ):
     print(f'is_indoor: {is_indoor}')
     print(f'save_processed_images: {save_processed_images}')
@@ -42,13 +67,18 @@ async def upload_image(
         save_processed_images = True
     else:
         save_processed_images = False
-        
-    # Read the file from S3
 
     if not detect_app.is_idle():
-        raise HTTPException(status_code=400, detail="The detection process is not idle.")
+        ajax(0, 'The detection process is not idle.', None)
+
+    # Read the file from S3
+    file_path = download_file_from_s3(s3_bucket, s3_key)
     
-    result = detect_app.detect_file(file_path, is_indoor, False, False)
+    try:
+        result = detect_app.detect_file(file_path, is_indoor, save_processed_images, False)
+    except Exception as e:
+        ajax(0, f'Detect failed: {e}', None)
+
     coordinate_list = []
 
     for coordinate in result:
@@ -57,6 +87,4 @@ async def upload_image(
 
     print(coordinate_list)
 
-    return JSONResponse(content={
-        "coordinate_list": coordinate_list
-    })
+    return ajax(1, 'ok', coordinate_list)
