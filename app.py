@@ -10,8 +10,20 @@ import time
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f'Using device: {device}')
 
+IS_IDLE = True
+
+def is_idle():
+    return IS_IDLE
+
 
 def detect_file(file_path, is_window_detected=True, save_processed_images=True, show_final_image=True):
+    if not is_idle():
+        raise Exception('The detection process is not idle.')
+    
+    global IS_IDLE
+
+    IS_IDLE = False
+
     """
     Detect the file
 
@@ -76,6 +88,7 @@ def detect_file(file_path, is_window_detected=True, save_processed_images=True, 
     end_time = time.perf_counter()
     print(f"Segmentation time: {end_time - start_time:.4f} seconds")
 
+    IS_IDLE = True
 
     # Filter out pillars that are too short
     if not is_window_detected:
@@ -87,9 +100,6 @@ def detect_file(file_path, is_window_detected=True, save_processed_images=True, 
             scaled_masks = tool.filter_masks_by_aspect_ratio_avg(scaled_masks)
         else:
             scaled_masks = tool.filter_masks_by_aspect_ratio(scaled_masks)
-
-    print(len(scaled_masks))
-    
     
     pillarCornerList = []
 

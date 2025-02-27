@@ -20,7 +20,7 @@ model.eval()
 
 end_time = time.time()
 
-print(f"Model loading time: {end_time - start_time:.4f} seconds")
+print(f"SegModel loading time: {end_time - start_time:.4f} seconds")
 
 
 def segment_with_boxs(
@@ -42,7 +42,6 @@ def segment_with_boxs(
     image = image.resize((new_w, new_h))
 
     print("Scaled Image : ", image.size)
-    print("Scale : ", scale)
 
     scaled_points = np.array(
         [[int(x * scale) for x in point] for point in global_points]

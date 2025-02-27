@@ -20,48 +20,36 @@ app.add_middleware(
 # 5m
 MAX_FILE_SIZE = 5 * 1024 * 1024
 
+# The number of concurrent is 1
+IS_IDLE = True
+
 
 @app.post("/detect")
 async def upload_image(
-    upload_file: UploadFile = File(...),
-    is_window_detected: int = Form(1),
-    save_processed_images: int = Form(1)
+    is_indoor: int = Form(1),
+    save_processed_images: int = Form(0),
+    file_key: str = Form(...),
 ):
-    print(is_window_detected)
-    print(save_processed_images)
+    print(f'is_indoor: {is_indoor}')
+    print(f'save_processed_images: {save_processed_images}')
 
-    if is_window_detected > 0:
-        is_window_detected = True
+    if is_indoor > 0:
+        is_indoor = True
     else:
-        is_window_detected = False
+        is_indoor = False
 
     if save_processed_images > 0:
         save_processed_images = True
     else:
         save_processed_images = False
+        
+    # Read the file from S3
 
-    print(is_window_detected)
-
-    if upload_file.content_type not in ["image/jpeg", "image/png"]:
-        raise HTTPException(status_code=400, detail="Invalid file type. Only JPG and PNG are allowed.")
+    if not detect_app.is_idle():
+        raise HTTPException(status_code=400, detail="The detection process is not idle.")
     
-    if upload_file.file.seek(0, os.SEEK_END) > MAX_FILE_SIZE:
-        raise HTTPException(status_code=400, detail="File size exceeds the limit of 5MB.")
-    upload_file.file.seek(0)
-
-    timestamp = int(time.time() * 1000)
-    file_extension = os.path.splitext(upload_file.filename)[1]
-    new_file_name = f"{timestamp}{file_extension}"
-
-    file_path = f"uploads/{new_file_name}"
-    file_location = file_path
-    with open(file_location, "wb") as file:
-        file.write(await upload_file.read())
-
-    result = detect_app.detect_file(file_path, is_window_detected, False, False)
+    result = detect_app.detect_file(file_path, is_indoor, False, False)
     coordinate_list = []
-
-    print(result)
 
     for coordinate in result:
         _coordinate = [[int(x) for x in point] for point in coordinate]
