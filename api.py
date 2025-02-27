@@ -1,11 +1,14 @@
-from fastapi import FastAPI, File, Form, UploadFile, HTTPException
+from fastapi import FastAPI, File, Form, UploadFile, HTTPException, Request
 from fastapi.responses import JSONResponse
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 
 import time
 import os
 
 import app as detect_app
+from middleware.APIVerification import APIVerification
+from utils.helper import ajax
 import boto3
 
 app = FastAPI()
@@ -18,6 +21,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
+app.add_middleware(APIVerification)
+
 # 5m
 MAX_FILE_SIZE = 5 * 1024 * 1024
 
@@ -25,12 +31,11 @@ MAX_FILE_SIZE = 5 * 1024 * 1024
 IS_IDLE = True
 
 
-def ajax(status: int = 1, msg: str = 'ok', data: any = None) -> JSONResponse:
-    return JSONResponse(content={
-        "status": status,
-        "msg": msg,
-        "data": data
-    })
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    errors = exc.errors()
+    
+    return ajax(0, f'{errors[0]['msg']}: {errors[0]['loc']}', None)
 
 
 def download_file_from_s3(s3_bucket, s3_key):
