@@ -1,7 +1,8 @@
-from fastapi import FastAPI, File, Form, UploadFile, HTTPException, Request
+from fastapi import FastAPI, File, Form, UploadFile, HTTPException, Request, Depends
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
+from typing import Optional
 
 import time
 import os
@@ -31,6 +32,12 @@ MAX_FILE_SIZE = 5 * 1024 * 1024
 IS_IDLE = True
 
 
+def get_form_data(request: Request):
+    form_field_list = getattr(request.state, "form_field_list", {})
+    file_list = getattr(request.state, "file_list", {})
+    return form_field_list, file_list
+
+
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
     errors = exc.errors()
@@ -55,13 +62,18 @@ async def is_available():
 
 @app.post("/detect/image")
 async def upload_image(
-    is_indoor: int = Form(1),
-    save_processed_images: int = Form(0),
-    s3_bucket: str = Form(...),
-    s3_key: str = Form(...),
+    request: Request,
+    form_data: tuple = Depends(get_form_data)
 ):
-    print(f'is_indoor: {is_indoor}')
-    print(f'save_processed_images: {save_processed_images}')
+    form_field_list, file_list = form_data
+
+    is_indoor = int(form_field_list.get('is_indoor', 1))
+    save_processed_images = int(form_field_list.get('save_processed_images', 0))
+    s3_bucket = form_field_list.get('s3_bucket', None)
+    s3_key = form_field_list.get('s3_key', None)
+    upload_file = file_list.get('upload_file', None)
+
+    print(f'is_indoor: {is_indoor}, save_processed_images: {save_processed_images}')
 
     if is_indoor > 0:
         is_indoor = True
@@ -74,15 +86,35 @@ async def upload_image(
         save_processed_images = False
 
     if not detect_app.is_idle():
-        ajax(0, 'The detection process is not idle.', None)
+        return ajax(0, 'The detection process is not idle.', None)
 
-    # Read the file from S3
-    file_path = download_file_from_s3(s3_bucket, s3_key)
+    if upload_file:
+        if upload_file.content_type not in ["image/jpeg", "image/png"]:
+            raise HTTPException(status_code=400, detail="Invalid file type. Only JPG and PNG are allowed.")
+        
+        if upload_file.file.seek(0, os.SEEK_END) > MAX_FILE_SIZE:
+            raise HTTPException(status_code=400, detail="File size exceeds the limit of 5MB.")
+        upload_file.file.seek(0)
+
+        timestamp = int(time.time() * 1000)
+        file_extension = os.path.splitext(upload_file.filename)[1]
+        new_file_name = f"{timestamp}{file_extension}"
+
+        file_path = f"uploads/{new_file_name}"
+        file_location = file_path
+        with open(file_location, "wb") as file:
+            file.write(await upload_file.read())
+    else:
+        print('download from s3')
+        # Read the file from S3
+        file_path = download_file_from_s3(s3_bucket, s3_key)
+
+    print(f'file_path: {file_path}')
     
     try:
         result = detect_app.detect_file(file_path, is_indoor, save_processed_images, False)
     except Exception as e:
-        ajax(0, f'Detect failed: {e}', None)
+        return ajax(0, f'Detect failed: {e}', None)
 
     coordinate_list = []
 

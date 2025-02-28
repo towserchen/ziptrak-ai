@@ -4,7 +4,7 @@ supervision
 opencv-python
 pandas
 matplotlib
-onnxruntime-gpu
+onnxruntime
 fastapi[standard]
 uvicorn
 boto3

@@ -1,6 +1,6 @@
-from fastapi import FastAPI, Request, Response
+from fastapi import Request
 from starlette.middleware.base import BaseHTTPMiddleware
-from io import BytesIO
+from starlette.datastructures import UploadFile
 from fastapi.responses import JSONResponse
 from utils.helper import ajax
 from utils import verify
@@ -15,14 +15,25 @@ class APIVerification(BaseHTTPMiddleware):
         if request.method != 'POST':
             return ajax(0, 'Invalid request')
 
-        body = await request.body()
         form_data = await request.form()
 
-        if not 'token' in form_data:
-            return ajax(0, 'Invalid token')
+        form_field_list = {}
+        file_list = {}
 
-        request._body_cache = BytesIO(body)
-        request._receive = lambda: self._cached_receive(request)
+        for key, value in form_data.multi_items():
+            if isinstance(value, UploadFile):
+                file_list[key] = value
+            else:
+                form_field_list[key] = value
+        
+        request.state.form_field_list = form_field_list
+        request.state.file_list = file_list
+
+        if not 'token' in form_field_list:
+            return ajax(0, 'Invalid token')
+        
+        if not verify.verify_access_token(secret, form_field_list['token'], int(time.time())):
+            return ajax(0, 'Invalid token')
         
         response = await call_next(request)
 
@@ -36,7 +47,7 @@ class APIVerification(BaseHTTPMiddleware):
         try:
             body_data = json.loads(body_str)
             if isinstance(body_data, dict):
-                body_data['token'] = verify.generate_access_token(secret, time.time())
+                body_data['token'] = verify.generate_access_token(secret, int(time.time()))
                 body_str = json.dumps(body_data)
         except json.JSONDecodeError:
             return ajax(0, 'Invalid request')
