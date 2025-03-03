@@ -28,9 +28,6 @@ app.add_middleware(APIVerification)
 # 5m
 MAX_FILE_SIZE = 5 * 1024 * 1024
 
-# The number of concurrent is 1
-IS_IDLE = True
-
 
 def get_form_data(request: Request):
     form_field_list = getattr(request.state, "form_field_list", {})
@@ -57,7 +54,9 @@ def download_file_from_s3(s3_bucket, s3_key):
 
 @app.post('/node/is_available')
 async def is_available():
-    return ajax(detect_app.is_idle())
+    pid = os.getpid()
+    print(f'Available: PID: {pid}')
+    return ajax(1, 'ok', detect_app.is_idle())
 
 
 @app.post("/detect/image")
@@ -65,6 +64,9 @@ async def upload_image(
     request: Request,
     form_data: tuple = Depends(get_form_data)
 ):
+    pid = os.getpid()
+    print(f'Detect: PID: {pid}')
+
     form_field_list, file_list = form_data
 
     is_indoor = int(form_field_list.get('is_indoor', 1))

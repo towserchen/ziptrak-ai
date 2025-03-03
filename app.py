@@ -6,14 +6,20 @@ import detect
 from utils import tool
 import sam
 import time
+from pathlib import Path
+from filelock import Timeout, FileLock
+
+
+APP_DIR = Path(__file__).resolve().parent
+LOCK_FILE_PATH = APP_DIR / "filelock.lock"
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f'Using device: {device}')
 
-IS_IDLE = True
+lock = FileLock(LOCK_FILE_PATH, timeout=3540)
 
 def is_idle():
-    return IS_IDLE
+    return not lock.is_locked
 
 
 def detect_file(file_path, is_window_detected=True, save_processed_images=True, show_final_image=True):
@@ -32,63 +38,58 @@ def detect_file(file_path, is_window_detected=True, save_processed_images=True, 
     if not is_idle():
         raise Exception('The detection process is not idle.')
     
-    global IS_IDLE
+    with lock:
+        file_name = file_path.split('.')[0]
 
-    IS_IDLE = False
-    
-    file_name = file_path.split('.')[0]
+        if is_window_detected:
+            score_thrushold = 0.15
+        else:
+            score_thrushold = 0.01
 
-    if is_window_detected:
-        score_thrushold = 0.15
-    else:
-        score_thrushold = 0.01
+        # Detect
+        detect_result = detect.inference_model(is_window_detected, file_path, "window", score_thrushold)
 
-    # Detect
-    detect_result = detect.inference_model(is_window_detected, file_path, "window", score_thrushold)
+        label = [1, 1]
+        masks = []
+        scaled_masks = []
+        cornersList = []
 
-    label = [1, 1]
-    masks = []
-    scaled_masks = []
-    cornersList = []
+        if is_window_detected:
+            # Filter out low score windows when multiple windows overlap
+            detect_result = tool.filter_overlapped_windows(detect_result)
+        else:
+            detect_result = tool.filter_larger_rectangle(detect_result)
 
-    if is_window_detected:
-        # Filter out low score windows when multiple windows overlap
-        detect_result = tool.filter_overlapped_windows(detect_result)
-    else:
-        detect_result = tool.filter_larger_rectangle(detect_result)
+            # Filter out low score pillar when found more than 4 pillars
+            if len(detect_result) > 4:
+                detect_result = tool.filter_low_score_pillar_bboxes(detect_result)
 
-        # Filter out low score pillar when found more than 4 pillars
-        if len(detect_result) > 4:
-            detect_result = tool.filter_low_score_pillar_bboxes(detect_result)
+        filtered_bboxes = [d['bbox'] for d in detect_result]
 
-    filtered_bboxes = [d['bbox'] for d in detect_result]
+        image = Image.open(file_path).convert('RGB')
+        original_width, original_height = image.size
 
-    image = Image.open(file_path).convert('RGB')
-    original_width, original_height = image.size
+        index = 0
+        start_time = time.perf_counter()
 
-    index = 0
-    start_time = time.perf_counter()
+        for row in filtered_bboxes:
+            index += 1
 
-    for row in filtered_bboxes:
-        index += 1
+            new_row = np.array([[row[0], row[1]], [row[2], row[3]]])
+            mask = sam.segment_with_boxs(image, new_row, label)
 
-        new_row = np.array([[row[0], row[1]], [row[2], row[3]]])
-        mask = sam.segment_with_boxs(image, new_row, label)
+            mask = tool.filter_small_masks(mask)
 
-        mask = tool.filter_small_masks(mask)
+            scaled_mask = cv2.resize(np.squeeze(mask, axis=0).astype(np.uint8),
+                        (original_width, original_height),
+                        interpolation=cv2.INTER_NEAREST,
+            )
 
-        scaled_mask = cv2.resize(np.squeeze(mask, axis=0).astype(np.uint8),
-                    (original_width, original_height),
-                    interpolation=cv2.INTER_NEAREST,
-        )
-
-        masks.append(mask)
-        scaled_masks.append(scaled_mask)
-    
-    end_time = time.perf_counter()
-    print(f"Segmentation time: {end_time - start_time:.4f} seconds")
-
-    IS_IDLE = True
+            masks.append(mask)
+            scaled_masks.append(scaled_mask)
+        
+        end_time = time.perf_counter()
+        print(f"Segmentation time: {end_time - start_time:.4f} seconds")
 
     # Filter out pillars that are too short
     if not is_window_detected:
