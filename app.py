@@ -8,6 +8,7 @@ import sam
 import time
 from pathlib import Path
 from filelock import Timeout, FileLock
+from utils import reporter
 
 
 APP_DIR = Path(__file__).resolve().parent
@@ -17,6 +18,9 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f'Using device: {device}')
 
 lock = FileLock(LOCK_FILE_PATH, timeout=3540)
+
+# Report to gateway that this node is online
+reporter.online()
 
 def is_idle():
     return not lock.is_locked
