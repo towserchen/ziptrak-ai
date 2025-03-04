@@ -3,7 +3,7 @@ import time
 import requests
 from utils import verify
 
-API_BASE_URL = os.environ.get('API_URL')
+API_BASE_URL = os.environ.get('API_BASE_URL', 'http://127.0.0.1:8000')
 API_SECRET_KEY = os.environ.get('API_SECRET_KEY', 'ziptrak')
 
 def online():
