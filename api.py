@@ -39,7 +39,7 @@ def get_form_data(request: Request):
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
     errors = exc.errors()
     
-    return ajax(0, f'{errors[0]['msg']}: {errors[0]['loc']}', None)
+    return ajax(0, f"{errors[0]['msg']}: {errors[0]['loc']}", None)
 
 
 def download_file_from_s3(s3_bucket, s3_key):
