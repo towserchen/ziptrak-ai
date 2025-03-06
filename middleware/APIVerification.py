@@ -4,9 +4,12 @@ from starlette.datastructures import UploadFile
 from fastapi.responses import JSONResponse
 from utils.helper import ajax
 from utils import verify
+from dotenv import load_dotenv
 import json
 import time
 import os
+
+load_dotenv()
 
 class APIVerification(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):

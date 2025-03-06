@@ -3,3 +3,4 @@ results/*
 uploads/*
 /myapi
 filelock.lock
+.env
