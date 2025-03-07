@@ -8,5 +8,4 @@ onnxruntime-gpu
 fastapi[standard]
 uvicorn
 boto3
-gunicorn
 python-dotenv

@@ -6,11 +6,12 @@ from typing import Optional
 
 import time
 import os
+import uvicorn
 
-import app as detect_app
 from middleware.APIVerification import APIVerification
 from utils.helper import ajax
 import boto3
+from multiprocessing import Process, Queue
 
 app = FastAPI()
 
@@ -27,6 +28,23 @@ app.add_middleware(APIVerification)
 
 # 5m
 MAX_FILE_SIZE = 5 * 1024 * 1024
+
+master_queue = Queue()
+slave_queue = Queue()
+
+
+def subprocess_detect_image(master_queue, slave_queue):
+    print('Subprocess is online')
+
+    import app as detect_app
+
+    while True:
+        command = master_queue.get()
+        print(f'Command recv: {command}')
+        result = detect_app.detect_file(command['file_path'], command['is_indoor'], command['save_processed_images'], False)
+        slave_queue.put(result)
+
+        time.sleep(1)
 
 
 def get_form_data(request: Request):
@@ -52,15 +70,15 @@ def download_file_from_s3(s3_bucket, s3_key):
     return local_file_path
 
 
-@app.post('/node/is_available')
-async def is_available():
+@app.post('/node/is_idle')
+async def is_idle():
     pid = os.getpid()
     print(f'Available: PID: {pid}')
-    return ajax(1, 'ok', detect_app.is_idle())
+    return ajax(1, 'ok', master_queue.empty())
 
 
 @app.post("/detect/image")
-async def upload_image(
+async def detect_image(
     request: Request,
     form_data: tuple = Depends(get_form_data)
 ):
@@ -87,7 +105,7 @@ async def upload_image(
     else:
         save_processed_images = False
 
-    if not detect_app.is_idle():
+    if not master_queue.empty():
         return ajax(0, 'The detection process is not idle.', None)
 
     if upload_file:
@@ -114,7 +132,17 @@ async def upload_image(
     print(f'file_path: {file_path}')
     
     try:
-        result = detect_app.detect_file(file_path, is_indoor, save_processed_images, False)
+        #result = detect_app.detect_file(file_path, is_indoor, save_processed_images, False)
+        print(f'Put the command')
+
+        master_queue.put({
+            "file_path": file_path,
+            "is_indoor": is_indoor,
+            "save_processed_images": save_processed_images
+        })
+
+        print(f'Wait for the result')
+        result = slave_queue.get()
     except Exception as e:
         return ajax(0, f'Detect failed: {e}', None)
 
@@ -127,3 +155,10 @@ async def upload_image(
     print(coordinate_list)
 
     return ajax(1, 'ok', coordinate_list)
+
+
+if __name__ == '__main__':
+    detect_process = Process(target=subprocess_detect_image, args=(master_queue, slave_queue))
+    detect_process.start()
+
+    uvicorn.run(app, host="0.0.0.0", port=10000)
