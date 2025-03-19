@@ -24,7 +24,10 @@ def subprocess_detect_image(task_queue, result_queue, image_detection_event):
         result = detect_app.detect_file(command['file_path'], additional_parameter['is_indoor'], False, False)
 
         print(f'[Detect] Result: {result}')
-        result_queue.put([1, 2, 3, 4])
+        result_queue.put({
+            'task_uuid': command['task_uuid'],
+            'result': result
+        })
 
 
 def download_file_from_s3(s3_bucket, s3_key):
@@ -38,7 +41,7 @@ def download_file_from_s3(s3_bucket, s3_key):
 
 
 # Add an image detection task to task queue
-def add_image_task(task_queue, lock, is_idle, s3_bucket, file_key, additional_parameter=None):
+def add_image_task(task_queue, lock, is_idle, task_uuid, s3_bucket, file_key, additional_parameter=None):
     if not is_idle.value:
         return False
 
@@ -52,22 +55,14 @@ def add_image_task(task_queue, lock, is_idle, s3_bucket, file_key, additional_pa
     #file_path = 'samples/1.jpg' # For test
 
     print(f'[AddTask] Dispatch task: {file_key} with additional parameter: {additional_parameter}')
+    
     task_queue.put({
+        'task_uuid': task_uuid,
         'file_path': file_path,
         'additional_parameter': additional_parameter
     })
 
     return True
-
-
-async def detect_image():
-    coordinate_list = []
-
-    for coordinate in result:
-        _coordinate = [[int(x) for x in point] for point in coordinate]
-        coordinate_list.append(_coordinate)
-
-    print(coordinate_list)
 
 
 if __name__ == '__main__':
@@ -78,14 +73,21 @@ if __name__ == '__main__':
 
     while True:
         try:
-            result = result_queue.get(block=False)
+            data = result_queue.get(block=False)
             
             with lock:
                 is_idle.value = True
 
-            print(f'[Result] Result recv: {result}')
+            print(f'[Result] Result recv: {data}')
             print(f'[Result] is_idle: {is_idle.value}')
-            gateway.report(result)
+
+            coordinate_list = []
+
+            for coordinate in data['result']:
+                _coordinate = [[int(x) for x in point] for point in coordinate]
+                coordinate_list.append(_coordinate)
+
+            gateway.report(data['task_uuid'], coordinate_list)
         except:
             pass
 
@@ -96,8 +98,14 @@ if __name__ == '__main__':
 
             if new_task:
                 print(f'[Result] Add task: {new_task}')
-                print(new_task['additional_parameter'])
-                add_image_task(task_queue, lock, is_idle, new_task['s3_bucket'], new_task['file_key'], new_task['additional_parameter'])
+
+                try:
+                    add_image_task(task_queue, lock, is_idle, new_task['uuid'], new_task['s3_bucket'], new_task['file_key'], new_task['additional_parameter'])
+                except Exception as e:
+                    with lock:
+                        is_idle.value = True
+
+                    print(f'[Result] exception: {e}')
         else:
-            #pass # For test
-            print(f'[Result] Detection in progress, is_idle: {is_idle.value}')
+            pass # For test
+            #print(f'[Result] Detection in progress, is_idle: {is_idle.value}')

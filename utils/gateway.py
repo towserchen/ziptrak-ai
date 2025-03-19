@@ -37,7 +37,7 @@ def post(url: str, data: dict = {}):
     retryMax = 5
 
     while retryCount < retryMax:
-        response = requests.post(url, data=data)
+        response = requests.post(url, json=data)
 
         if response.status_code != 200:
             time.sleep(3)
@@ -50,14 +50,15 @@ def post(url: str, data: dict = {}):
 
 
 # Report a detection result to gateway
-def report(result: Any):
+def report(task_uuid: str, result: Any):
     data = {
         'instance_id': get_instance_id(),
+        'task_uuid': task_uuid,
         'result': result
     }
 
     api_url = API_BASE_URL + '/task/report'
-    post(api_url, data=data)
+    post(api_url, data)
 
 
 
