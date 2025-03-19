@@ -6,13 +6,9 @@ import detect
 from utils import tool
 import sam
 import time
-from utils import reporter
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f'Using device: {device}')
-
-# Report to gateway that this node is online
-reporter.online()
 
 
 def detect_file(file_path, is_window_detected=True, save_processed_images=True, show_final_image=True):
@@ -76,7 +72,7 @@ def detect_file(file_path, is_window_detected=True, save_processed_images=True, 
 
         masks.append(mask)
         scaled_masks.append(scaled_mask)
-        
+
     end_time = time.perf_counter()
     print(f"Segmentation time: {end_time - start_time:.4f} seconds")
 

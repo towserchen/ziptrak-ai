@@ -32,8 +32,14 @@ LABEL_ANNOTATOR = LabelAnnotator(text_padding=4,
                                  text_scale=0.5,
                                  text_thickness=1)
 
+start_time = time.perf_counter()
+
 window_model = ort.InferenceSession('weights/window.onnx', providers=['CUDAExecutionProvider', 'CPUExecutionProvider'])
 pillar_model = ort.InferenceSession('weights/pillar.onnx', providers=['CUDAExecutionProvider', 'CPUExecutionProvider'])
+
+end_time = time.perf_counter()
+
+print(f"DetectModel loading time: {end_time - start_time:.4f} seconds")
 
 def save_result(file_name, annotations, original_image, device):
     """

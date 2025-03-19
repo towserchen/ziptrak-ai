@@ -9,3 +9,5 @@ fastapi[standard]
 uvicorn
 boto3
 python-dotenv
+python-multipart
+dotenv
