@@ -21,7 +21,16 @@ def subprocess_detect_image(task_queue, result_queue, image_detection_event):
         print(f'[Detect] Command recv: {command}')
 
         additional_parameter = command['additional_parameter']
-        result = detect_app.detect_file(command['file_path'], additional_parameter['is_indoor'], False, False)
+        is_window_detected = False
+
+        if 'is_indoor' in additional_parameter:
+            if int(additional_parameter['is_indoor']) > 0:
+                is_window_detected = True
+            else:
+                is_window_detected = False
+
+        print(f'[Detect] is_window_detected: {is_window_detected}')
+        result = detect_app.detect_file(command['file_path'], is_window_detected, False, False)
 
         print(f'[Detect] Result: {result}')
         result_queue.put({
@@ -87,6 +96,7 @@ if __name__ == '__main__':
                 _coordinate = [[int(x) for x in point] for point in coordinate]
                 coordinate_list.append(_coordinate)
 
+            print(f'[Result] Send to API: {coordinate_list}')
             gateway.report(data['task_uuid'], coordinate_list)
         except:
             pass
